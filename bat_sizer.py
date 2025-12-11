@@ -133,4 +133,75 @@ elif st.session_state.step == 3:
     st.write("Have player hold a 2lb weight straight out for 20 seconds.")
     
     if st.button("⏱️ START TIMER"):
-        with st.empt
+        with st.empty():
+            for i in range(20, 0, -1):
+                st.markdown(f"<h2 style='text-align:center; color:#009060'>{i}</h2>", unsafe_allow_html=True)
+                time.sleep(1)
+            st.balloons()
+            st.success("Time's Up!")
+            
+    passed = st.radio("Did the arm shake?", ["No, it was easy", "Yes, they struggled"])
+    
+    if st.button("GET SCOUTING REPORT >"):
+        # LOGIC
+        h = st.session_state.height
+        length = 26
+        if st.session_state.sport == "Baseball":
+            if h > 40: length = 27
+            if h > 44: length = 28
+            if h > 48: length = 29
+            if h > 52: length = 30
+            if h > 56: length = 31
+            if h > 60: length = 32
+            
+            drop = "-10"
+            if st.session_state.league == "High School (BBCOR)": drop = "-3"
+            elif st.session_state.weight > 110: drop = "-8"
+            if passed == "Yes, they struggled" and drop == "-10": drop = "-11"
+            
+            st.session_state.rec_name = "Marucci Cat X"
+            st.session_state.rec_img = "https://m.media-amazon.com/images/I/71R2J+d-ZlL._AC_SL1500_.jpg"
+            st.session_state.link = "https://www.amazon.com/s?k=marucci+cat+x+baseball+bat"
+        else:
+            if h > 48: length = 29
+            if h > 52: length = 30
+            if h > 56: length = 31
+            if h > 60: length = 32
+            drop = "-10"
+            st.session_state.rec_name = "Easton Ghost"
+            st.session_state.rec_img = "https://m.media-amazon.com/images/I/61bV2+D-ZlL._AC_SL1500_.jpg"
+            st.session_state.link = "https://www.amazon.com/s?k=easton+ghost+softball+bat"
+
+        st.session_state.bat_result = f"{length}-inch // {drop} Drop"
+        next_step()
+
+# STEP 4: REPORT
+elif st.session_state.step == 4:
+    st.progress(100)
+    st.write("### 🔒 Unlock Official Report")
+    email = st.text_input("Enter Parent Email:")
+    
+    if st.button("REVEAL RESULTS"):
+        if "@" not in email:
+            st.error("Valid email required.")
+        else:
+            add_subscriber(email, st.session_state.sport, st.session_state.bat_result)
+            
+            st.markdown(f"""
+            <div style="background-color:#f0fcf4; padding:20px; border-radius:10px; border:2px solid #009060; text-align:center;">
+                <h2 style="color:#009060; margin:0;">TARGET: {st.session_state.bat_result}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.write("")
+            col1, col2 = st.columns([1,2])
+            with col1: st.image(st.session_state.rec_img)
+            with col2:
+                st.write(f"**Best Match:** {st.session_state.rec_name}")
+                st.link_button("👉 CHECK AMAZON PRICE", st.session_state.link)
+            
+            st.divider()
+            st.write("You have the gear. Now get the card.")
+            st.link_button("✨ CREATE SCOREZLE CARD", "https://scorezle.com")
+            
+            if st.button("START OVER"): restart()
