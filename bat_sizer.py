@@ -1,15 +1,45 @@
 import streamlit as st
 import requests
+import time
 
-# CONFIGURATION
+# --- CONFIGURATION (Dark Mode & Title) ---
 st.set_page_config(page_title="The Scorezle Bat Lab", layout="centered")
+
+# Custom CSS for Dark Mode & Button Styling
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0e1117;
+        color: white;
+    }
+    div.stButton > button {
+        width: 100%;
+        background-color: #FF4B4B;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 10px;
+        padding: 10px;
+    }
+    div.stButton > button:hover {
+        background-color: #FF0000;
+        color: white;
+    }
+    /* Progress Bar Color */
+    .stProgress > div > div > div > div {
+        background-color: #FFD700;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- MAILERLITE FUNCTION ---
 def add_subscriber(email, sport, bat_result):
     url = "https://connect.mailerlite.com/api/subscribers"
-    # This grabs the key from Streamlit Secrets
-    token = st.secrets["MAILERLITE_KEY"]
-    
+    try:
+        token = st.secrets["MAILERLITE_KEY"]
+    except:
+        token = "MISSING_KEY" # Handle local testing
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
@@ -25,111 +55,152 @@ def add_subscriber(email, sport, bat_result):
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code in [200, 201]:
-            print("Success: Email sent to MailerLite")
-        else:
-            print(f"Error: {response.text}")
-    except Exception as e:
-        print(f"Connection Error: {e}")
+        requests.post(url, json=payload, headers=headers)
+    except:
+        pass
 
-# --- THE APP UI ---
+# --- SESSION STATE (The Wizard Logic) ---
+if 'step' not in st.session_state:
+    st.session_state.step = 1
+if 'bat_result' not in st.session_state:
+    st.session_state.bat_result = ""
 
-st.title("⚾ The Scorezle Bat Lab")
-st.markdown("### The Official Pro Sizing Instrument")
+def next_step():
+    st.session_state.step += 1
 
-# TABS
-tab1, tab2, tab3 = st.tabs(["📏 The Pro Sizer", "👀 Bat Anatomy", "⚖️ League Rules"])
+def restart():
+    st.session_state.step = 1
 
-with tab1:
-    st.write("Most parents buy the wrong size. Let's fix that in 20 seconds.")
+# --- STEP 1: SPORT & LEAGUE ---
+if st.session_state.step == 1:
+    st.title("⚾ The Scorezle Bat Lab")
+    st.progress(25)
+    st.subheader("Step 1: The Legal Check")
     
-    # INPUTS
     col1, col2 = st.columns(2)
     with col1:
-        sport = st.selectbox("Sport", ["Baseball", "Softball (Fastpitch)"])
-        league = st.selectbox("League", ["Little League (USA)", "Travel Ball (USSSA)", "High School (BBCOR)"])
+        st.session_state.sport = st.selectbox("Sport", ["Baseball", "Softball (Fastpitch)"])
     with col2:
-        height_in = st.number_input("Height (Inches)", 40, 80, 54)
-        weight_lbs = st.number_input("Weight (lbs)", 40, 250, 80)
-
-    # LOGIC ENGINE
-    length = 26
-    if sport == "Baseball":
-        if height_in > 40: length = 27
-        if height_in > 44: length = 28
-        if height_in > 48: length = 29
-        if height_in > 52: length = 30
-        if height_in > 56: length = 31
-        if height_in > 60: length = 32
+        st.session_state.league = st.selectbox("League", ["Little League (USA)", "Travel Ball (USSSA)", "High School (BBCOR)"])
         
-        drop = "-10"
-        if league == "High School (BBCOR)": drop = "-3 (Mandatory)"
-        elif weight_lbs > 110: drop = "-8"
-        
-        rec_name = "Marucci Cat X"
-        link = "https://www.amazon.com/s?k=marucci+cat+x+baseball+bat"
-    else:
-        # Softball Logic
-        if height_in > 48: length = 29
-        if height_in > 52: length = 30
-        if height_in > 56: length = 31
-        if height_in > 60: length = 32
-        drop = "-10"
-        rec_name = "Easton Ghost"
-        link = "https://www.amazon.com/s?k=easton+ghost+softball+bat"
+    st.write("")
+    st.write("")
+    if st.button("Next: Measurements ➡️"):
+        next_step()
 
-    result_text = f"{length}-inch // {drop} Drop"
+# --- STEP 2: MEASUREMENTS ---
+elif st.session_state.step == 2:
+    st.title("📏 Precision Fit")
+    st.progress(50)
+    st.subheader("Step 2: Player Stats")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.session_state.height = st.number_input("Height (Inches)", 40, 80, 54)
+    with col2:
+        st.session_state.weight = st.number_input("Weight (lbs)", 40, 250, 80)
 
-    # THE HOLD TEST
-    st.info("💪 **The Hold Test:** Can the player hold a 2lb weight straight out for 20 seconds?")
-    if st.button("⏱️ Start 20-Second Timer"):
+    st.info("💡 **Pro Tip:** We use a pro algorithm based on height/weight ratio.")
+    
+    st.write("")
+    if st.button("Next: Strength Lab ➡️"):
+        next_step()
+
+# --- STEP 3: THE HOLD TEST ---
+elif st.session_state.step == 3:
+    st.title("💪 The Strength Lab")
+    st.progress(75)
+    st.subheader("Step 3: The 20-Second Challenge")
+    
+    st.write("Have the player hold a **2lb weight** (or water bottle) straight out to the side.")
+    
+    if st.button("⏱️ Start Timer"):
         with st.empty():
-            import time
-            for seconds in range(20, 0, -1):
-                st.write(f"⏳ Hold it... {seconds}")
+            for i in range(20, 0, -1):
+                st.markdown(f"# ⏳ {i}")
                 time.sleep(1)
-            st.success("Time's Up! If arm shook, buy a lighter bat.")
+            st.markdown("# ✅ TIME UP!")
             st.balloons()
+            
+    st.write("Did their arm shake or drop?")
+    passed = st.radio("Result:", ["No, it was easy", "Yes, they struggled"])
+    
+    if st.button("Next: Get Scouting Report ➡️"):
+        # CALCULATE LOGIC HERE
+        length = 26
+        h = st.session_state.height
+        if st.session_state.sport == "Baseball":
+            if h > 40: length = 27
+            if h > 44: length = 28
+            if h > 48: length = 29
+            if h > 52: length = 30
+            if h > 56: length = 31
+            if h > 60: length = 32
+            
+            drop = "-10"
+            if st.session_state.league == "High School (BBCOR)": drop = "-3"
+            elif st.session_state.weight > 110: drop = "-8"
+            
+            # Strength Adjustment
+            if passed == "Yes, they struggled" and drop == "-10":
+                drop = "-11 (Lighter)"
+                
+            st.session_state.rec_name = "Marucci Cat X"
+            st.session_state.rec_img = "https://m.media-amazon.com/images/I/71R2J+d-ZlL._AC_SL1500_.jpg"
+            st.session_state.link = "https://www.amazon.com/s?k=marucci+cat+x+baseball+bat"
+            
+        else:
+            # Softball
+            if h > 48: length = 29
+            if h > 52: length = 30
+            if h > 56: length = 31
+            if h > 60: length = 32
+            drop = "-10"
+            
+            st.session_state.rec_name = "Easton Ghost"
+            st.session_state.rec_img = "https://m.media-amazon.com/images/I/61bV2+D-ZlL._AC_SL1500_.jpg"
+            st.session_state.link = "https://www.amazon.com/s?k=easton+ghost+softball+bat"
 
-    st.divider()
+        st.session_state.bat_result = f"{length}-inch // {drop} Drop"
+        next_step()
 
-    # THE EMAIL GATE
-    email = st.text_input("📧 Where should we send your Official Scouting Report?")
-    st.caption("🔒 We respect your privacy. Unlock your results & join the Scorezle Pro tips list.")
-
-    if st.button("🚀 Get Official Report"):
+# --- STEP 4: THE GATE & REPORT ---
+elif st.session_state.step == 4:
+    st.title("🏆 Official Report")
+    st.progress(100)
+    
+    st.markdown("### 🔒 Unlock Your Specs")
+    email = st.text_input("Enter Parent Email to reveal results:")
+    st.caption("We respect privacy. Unsubscribe anytime.")
+    
+    if st.button("🚀 REVEAL RESULTS"):
         if "@" not in email:
-            st.error("Please enter a valid email address.")
+            st.error("Please enter a valid email.")
         else:
             # Send to MailerLite
-            add_subscriber(email, sport, result_text)
+            add_subscriber(email, st.session_state.sport, st.session_state.bat_result)
             
-            st.success(f"Report Sent to {email}!")
+            # SHOW THE CARD
+            st.success(f"Report Sent to {email}")
             
-            # SHOW RESULTS
-            st.markdown(f"## 🎯 YOUR TARGET: {result_text}")
+            st.markdown(f"""
+            <div style="background-color: #1E1E1E; padding: 20px; border-radius: 10px; border: 2px solid #FFD700;">
+                <h1 style="color: #FFD700; text-align: center;">TARGET: {st.session_state.bat_result}</h1>
+            </div>
+            """, unsafe_allow_html=True)
             
-            c1, c2 = st.columns([1,2])
-            with c2:
-                st.subheader(f"Recommended: {rec_name}")
-                st.link_button("Check Price on Amazon", link)
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                st.image(st.session_state.rec_img)
+            with col2:
+                st.subheader(f"Recommended: {st.session_state.rec_name}")
+                st.write("Rated #1 for this size profile.")
+                st.link_button("👉 Check Price on Amazon", st.session_state.link)
             
-            st.success("Now make them look like a Pro. Create your Scorezle Card below.")
-
-with tab2:
-    st.header("Bat Anatomy 101")
-    st.write("**Barrel:** The thick part where you hit the ball.")
-    st.write("**Drop Weight:** The difference between Length and Weight. (Length - Weight = Drop).")
-    st.info("Pro Tip: A lighter bat (-12) is faster, but a heavier bat (-8) has more power.")
-
-with tab3:
-    st.header("Legal Rules")
-    st.warning("High Schoolers MUST swing BBCOR (-3).")
-    st.write("**USSSA:** For Travel Ball. Big pop.")
-    st.write("**USA Bat:** For Little League. Wood-like performance.")
-
-# FOOTER
-st.divider()
-st.markdown("### 🏆 Made by Scorezle")
-st.link_button("✨ Create Your Custom Trading Card", "https://scorezle.com")
+            st.divider()
+            st.markdown("### 🌟 Next Step")
+            st.write("You have the gear. Now get the card.")
+            st.link_button("✨ Create Scorezle Card", "https://scorezle.com")
+            
+            if st.button("Start Over"):
+                restart()
