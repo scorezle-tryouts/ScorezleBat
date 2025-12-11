@@ -6,6 +6,12 @@ const MAILERLITE_API_KEY = 'REPLACE_WITH_YOUR_MAILERLITE_KEY';
 const GROUP_ID = '173526065051862853';
 
 export const subscribeToNewsletter = async (email: string, sport: string, batSize: string) => {
+  // Safety check for preview mode
+  if (MAILERLITE_API_KEY === 'REPLACE_WITH_YOUR_MAILERLITE_KEY') {
+    console.log("Simulating Subscription (No API Key set):", { email, sport, batSize });
+    return;
+  }
+
   try {
     const response = await fetch('https://connect.mailerlite.com/api/subscribers', {
       method: 'POST',
